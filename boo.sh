@@ -1,45 +1,37 @@
 #!/bin/bash
-# drunk_mouse_fixed.sh
+# drunk_mouse_working.sh
 
 if [ -z "$HYPRLAND_INSTANCE_SIGNATURE" ]; then
-    echo "Error: Not running in Hyprland!"
+    echo "Error: Run this in Hyprland!"
     exit 1
 fi
 
 echo "Activating drunk mouse mode for 2 minutes..."
-echo "Press Ctrl+C to stop early"
+echo "Press Ctrl+C to stop"
 
-original_sens=$(hyprctl getoption input:sensitivity | grep float | awk '{print $2}' 2>/dev/null || echo "1.0")
-original_accel=$(hyprctl getoption input:force_no_accel | grep int | awk '{print $2}' 2>/dev/null || echo "0")
+original_sens=$(hyprctl getoption input:sensitivity 2>/dev/null | grep float | awk '{print $2}' || echo "1.0")
 
 cleanup() {
-    echo -e "\nRestoring mouse settings..."
+    echo -e "\nRestoring mouse sensitivity..."
     hyprctl keyword input:sensitivity "$original_sens" 2>/dev/null
-    hyprctl keyword input:force_no_accel "$original_accel" 2>/dev/null
-    hyprctl keyword input:scroll_factor 1.0 2>/dev/null
-    echo "Mouse is sober again!"
+    echo "Mouse is sober!"
     exit 0
 }
 
-trap cleanup INT TERM EXIT
+trap cleanup INT TERM
 
-end_time=$((SECONDS + 120))
-while [ $SECONDS -lt $end_time ]; do
-    # Чувствительность 0.1-3.0 без bc
-    sens=$(echo "0.1 + 2.9 * $RANDOM / 32767" | awk '{printf "%.2f", $1}')
+end_time=$(( $(date +%s) + 120 ))
+
+while [ $(date +%s) -lt $end_time ]; do
+    # Простая случайная чувствительность от 0.1 до 3.0
+    sens_num=$(( RANDOM % 30 + 1 ))  # 1-30
+    sens=$(echo "$sens_num / 10" | awk '{printf "%.1f", $1}')  # 0.1-3.0
+    
     hyprctl keyword input:sensitivity "$sens" 2>/dev/null
     
-    # Ускорение вкл/выкл
-    accel=$((RANDOM % 2))
-    hyprctl keyword input:force_no_accel "$accel" 2>/dev/null
-    
-    # Фактор прокрутки 0.5-3.0
-    scroll=$(echo "0.5 + 2.5 * $RANDOM / 32767" | awk '{printf "%.2f", $1}')
-    hyprctl keyword input:scroll_factor "$scroll" 2>/dev/null
-    
-    # Пауза 0.1-0.5 сек
-    sleep_time=$(echo "0.1 + 0.4 * $RANDOM / 32767" | awk '{printf "%.2f", $1}')
-    sleep "$sleep_time"
+    # Случайное время сна 0.1-1.0 секунд
+    sleep_time=$(( RANDOM % 10 + 1 ))
+    sleep "0.$sleep_time"
 done
 
 cleanup
